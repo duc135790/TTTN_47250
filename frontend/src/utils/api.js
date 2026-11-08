@@ -53,6 +53,8 @@ export const authAPI = {
 };
 
 export const productsAPI = {
+  getFinderOptions: ({ signal } = {}) => api.get('/products/recommendation-options', { signal, timeout: 12000 }),
+  recommendShoes: (preferences, { signal } = {}) => api.post('/products/recommendations', preferences, { signal, timeout: 12000 }),
   getProducts: (keyword = '', category = '') => api.get('/products', { 
     params: { keyword, category, _t: Date.now() } 
   }),
@@ -102,7 +104,9 @@ export const ordersAPI = {
 export const cartAPI = {
   getCart: () => api.get('/customers/cart', { params: { _t: Date.now() } }),
   
-  addToCart: (productId, quantity, size = '', color = '') => api.post('/customers/cart', { productId, quantity, size, color }),
+  addToCart: (productId, quantity, size = '', color = '', { token, signal } = {}) => api.post('/customers/cart', { productId, quantity, size, color }, {
+    signal, ...(token ? { headers: { Authorization: `Bearer ${token}` } } : {}),
+  }),
   updateCartItem: (cartItemId, quantity) => api.put('/customers/cart', { cartItemId, quantity }),
   removeFromCart: (cartItemId) => api.delete(`/customers/cart/${cartItemId}`),
 };

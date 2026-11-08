@@ -218,7 +218,7 @@ export default function ShoeCatalog({ showIntro = false } = {}) {
       <div className="catalog-shell">
         <nav className="catalog-breadcrumb" aria-label="Đường dẫn"><Link to="/">Trang chủ</Link><FaChevronRight aria-hidden="true" /><span aria-current="page">Giày</span></nav>
         {showIntro && <section className="catalog-intro" aria-label="Khám phá SHOE STORE">
-          <div className="catalog-intro__copy"><p className="shop-eyebrow">PHONG CÁCH BẮT ĐẦU TỪ ĐÔI GIÀY</p><h2>Đi đúng gu.<br /><span>Bước tự tin.</span></h2><p>Từ những ngày xuống phố đến mỗi buổi tập.<br className="hidden sm:block" /> Chọn đôi giày đồng hành cùng chất riêng của bạn.</p><a className="catalog-intro__cta" href="#catalog-results">Tìm đôi giày của bạn <FaArrowRight aria-hidden="true" /></a></div>
+          <div className="catalog-intro__copy"><p className="shop-eyebrow">PHONG CÁCH BẮT ĐẦU TỪ ĐÔI GIÀY</p><h2>Đi đúng gu.<br /><span>Bước tự tin.</span></h2><p>Từ những ngày xuống phố đến mỗi buổi tập.<br className="hidden sm:block" /> Chọn đôi giày đồng hành cùng chất riêng của bạn.</p><Link className="catalog-intro__cta" to="/shoe-finder">Tìm đôi giày của bạn <FaArrowRight aria-hidden="true" /></Link></div>
           {featuredProduct ? <Link to={`/products/${featuredProduct._id}`} className="catalog-feature" aria-label={`Khám phá ${featuredProduct.name}`}>
             <span className="catalog-feature__tag">KHÁM PHÁ PHONG CÁCH MỖI NGÀY</span>
             <img src={productImageUrl(featuredProduct.image)} alt={featuredProduct.name} decoding="async" onError={onImageError} />

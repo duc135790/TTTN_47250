@@ -5,8 +5,9 @@ import { FaPlus, FaEdit, FaEye, FaEyeSlash, FaSearch, FaTrash } from 'react-icon
 import ProductPhotoPreview from './ProductPhotoPreview';
 import { productImages, productContentPayload, validateProductContentDraft, MAX_PRODUCT_IMAGES, MAX_PRODUCT_SECTIONS } from '../utils/productContent';
 import { productPricing, productSalePrice } from '../utils/productPricing';
+import { FINDER_PURPOSES, FINDER_STYLES, normalizeRecommendationTags } from '../../../shared/shoeFinder';
 
-const emptyForm = () => ({ name: '', price: '', discountPercent: '0', category: '', description: '', image: '', brand: '', material: '', origin: '', gender: '', style: '', modelCode: '', contentSections: [], variants: [{ color: '', size: '', quantity: '' }] });
+const emptyForm = () => ({ name: '', price: '', discountPercent: '0', category: '', description: '', image: '', brand: '', material: '', origin: '', gender: '', style: '', modelCode: '', contentSections: [], recommendation: { purposes: [], styles: [] }, variants: [{ color: '', size: '', quantity: '' }] });
 const imageTypes = ['image/jpeg', 'image/png', 'image/webp'];
 
 const AdminProducts = () => {
@@ -159,6 +160,10 @@ const AdminProducts = () => {
       }));
     const placeholderCover = imageFile ? extraImages.some(image => image.url === '/shoe.svg') ? '/shoe-cover-preview.svg' : '/shoe.svg' : formData.image;
     const pendingExtras = extraImages.map((image, index) => ({ ...image, url: image.file ? `/shoe-gallery-preview-${index + 1}.svg` : image.url }));
+    let recommendation;
+    try { recommendation = normalizeRecommendationTags(formData.recommendation || {}); }
+    catch (failure) { setFormError(failure.message); return; }
+    const previousRecommendation = { purposes: editingProduct?.recommendation?.purposes || [], styles: editingProduct?.recommendation?.styles || [] };
     const payload = {
       name: formData.name.trim(),
       brand: formData.brand.trim(),
@@ -168,6 +173,7 @@ const AdminProducts = () => {
       ...productContentPayload(formData, pendingExtras, placeholderCover, editingProduct),
       price,
       discountPercent,
+      ...(JSON.stringify(recommendation) !== JSON.stringify(previousRecommendation) ? { recommendation } : {}),
       ...(inventoryChanged ? { variants } : {}),
       ...(editingProduct ? { version: editingProduct.__v ?? 0 } : {}),
     };
@@ -229,6 +235,7 @@ const AdminProducts = () => {
       image: product.image || '',
       brand: product.brand || '',
       material: product.material || '', origin: product.origin || '', gender: product.gender || '', style: product.style || '', modelCode: product.modelCode || '',
+      recommendation: { purposes: [...(product.recommendation?.purposes || [])], styles: [...(product.recommendation?.styles || [])] },
       contentSections: (product.contentSections || []).map(section => ({ title: section.title || '', body: section.body || '', caption: section.caption || '', imageKey: section.image === product.image ? 'cover' : extras.find(image => image.url === section.image)?.key || '' })),
       variants: product.variants?.length
         ? product.variants.map(({ color, size, quantity }) => ({ color, size: String(size), quantity: String(quantity) }))
@@ -553,6 +560,19 @@ const AdminProducts = () => {
                 </div>
                 <button type="button" disabled={formData.variants.length >= 100} onClick={() => setFormData(previous => ({ ...previous, variants: [...previous.variants, { color: '', size: '', quantity: '' }] }))} className="mt-3 flex items-center gap-2 rounded border border-red-600 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"><FaPlus /> Thêm</button>
               </section>}
+              <section className="space-y-4 rounded-lg border border-gray-200 p-4" aria-labelledby="product-recommendation-title">
+                <h4 id="product-recommendation-title" className="font-semibold">Gợi ý chọn giày</h4>
+                <p className="text-sm text-gray-600">Chọn những nhu cầu và phong cách phù hợp với sản phẩm.</p>
+                {[['purposes', 'Mục đích sử dụng', FINDER_PURPOSES], ['styles', 'Phong cách', FINDER_STYLES.filter(item => item.value !== 'any')]].map(([field, label, options]) => <fieldset key={field}>
+                  <legend className="mb-2 text-sm font-medium">{label}</legend>
+                  <div className="flex flex-wrap gap-3">{options.map(option => <label key={option.value} className="flex cursor-pointer items-center gap-2 rounded-lg border bg-white px-3 py-2 text-sm">
+                    <input type="checkbox" name={`recommendation.${field}`} value={option.value} checked={(formData.recommendation?.[field] || []).includes(option.value)} onChange={event => setFormData(previous => {
+                      const selected = previous.recommendation?.[field] || [];
+                      return { ...previous, recommendation: { ...(previous.recommendation || { purposes: [], styles: [] }), [field]: event.target.checked ? [...selected, option.value] : selected.filter(value => value !== option.value) } };
+                    })} />{option.label}
+                  </label>)}</div>
+                </fieldset>)}
+              </section>
               <section className="space-y-4 rounded-lg border border-gray-200 p-4">
                 <div><h4 className="font-semibold">Bài giới thiệu chi tiết</h4></div>
                 {(formData.contentSections || []).map((section, index) => <div key={index} className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">

@@ -2,13 +2,34 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ProductSuggestionPicker } from './ConsultationProducts';
 
-export default function ChatThread({ thread, customer = false, canReply = true, productId }) {
+export default function ChatThread({ thread, customer = false, canReply = true, productId, consultationDraft, onConsultationHandled }) {
   const [draft, setDraft] = useState('');
   const [product, setProduct] = useState(undefined);
   const [choosingProduct, setChoosingProduct] = useState(false);
   const scroller = useRef(null), nearBottom = useRef(true), oldHeight = useRef(null);
   const textArea = useRef(null);
+  const handledConsultation = useRef(null);
+  const [pendingConsultation, setPendingConsultation] = useState(null);
+  const [consultationError, setConsultationError] = useState('');
   const { conversation, messages } = thread;
+  useEffect(() => {
+    if (!customer || !consultationDraft || handledConsultation.current === consultationDraft.id) return;
+    handledConsultation.current = consultationDraft.id;
+    if (draft.trim() || thread.sending) { setPendingConsultation(consultationDraft); return; }
+    setDraft(consultationDraft.text);
+    setProduct(consultationDraft.productId ? { id: consultationDraft.productId, name: consultationDraft.productName } : undefined);
+    setPendingConsultation(null); setConsultationError('');
+    onConsultationHandled?.(consultationDraft.id);
+  }, [consultationDraft?.id, customer]);
+  const applyConsultation = () => {
+    if (!pendingConsultation || thread.sending) return;
+    const next = [draft.trim(), pendingConsultation.text].filter(Boolean).join('\n\n');
+    if (next.length > 2000) { setConsultationError('Tin nhắn hiện tại quá dài để thêm nhu cầu. Bạn có thể gửi nội dung đang soạn trước.'); return; }
+    setDraft(next);
+    if (pendingConsultation.productId) setProduct({ id: pendingConsultation.productId, name: pendingConsultation.productName });
+    onConsultationHandled?.(pendingConsultation.id);
+    setPendingConsultation(null); setConsultationError(''); textArea.current?.focus();
+  };
   useEffect(() => { thread.setReadVisible?.(true); return () => thread.setReadVisible?.(false); }, []);
   useEffect(() => {
     const element = scroller.current;
@@ -46,6 +67,8 @@ export default function ChatThread({ thread, customer = false, canReply = true, 
     </div>
     {customer && !messages.length && !thread.loading && <div className="consult-prompts" aria-label="Gợi ý nhu cầu tư vấn">{['Mình cần tư vấn chọn size giày.', 'Mình muốn tìm giày phù hợp với nhu cầu và ngân sách.'].map(text => <button type="button" key={text} onClick={() => prompt(text)}>{text.includes('size') ? 'Tư vấn chọn size' : 'Tìm giày phù hợp'}</button>)}</div>}
     {thread.sendError && <p className="consult-error" role="alert">{thread.sendError}</p>}
+    {customer && pendingConsultation && <div className="consult-context"><span>Nhu cầu chọn giày của bạn đã sẵn sàng.</span><button type="button" disabled={thread.sending} onClick={applyConsultation}>Thêm vào tin đang soạn</button><button type="button" aria-label="Bỏ nội dung tư vấn mới" onClick={() => { onConsultationHandled?.(pendingConsultation.id); setPendingConsultation(null); setConsultationError(''); }}>×</button></div>}
+    {consultationError && <p role="alert" className="consult-error">{consultationError}</p>}
     {!canReply && !customer && <p className="consult-readonly">{conversation?.state === 'closed' ? 'Phiên tư vấn đã kết thúc.' : 'Bạn chưa phụ trách cuộc tư vấn này.'}</p>}
     <form className="consult-compose" onSubmit={submit}>
       {customer && productId && !product && <button type="button" className="consult-context-button" disabled={disabled} onClick={() => prompt('Mình muốn được tư vấn về đôi giày này.', productId)}>Hỏi về đôi giày đang xem</button>}

@@ -7,11 +7,14 @@ import {
 import { protect, admin, customerOnly } from '../middleware/authMiddleware.js';
 import { parseProductImage, createProductUploadHandler } from '../controllers/uploadController.js';
 import { requireCustomerOrAdmin } from '../utils/staffAccess.js';
+import { getShoeFinderOptions, getShoeRecommendations } from '../controllers/shoeFinderController.js';
 
 const router = express.Router();
 router.post('/upload', protect, admin, parseProductImage, createProductUploadHandler());
 router.get('/admin/all', protect, admin, getAllProductsAdmin);
 router.get('/stats/best-selling', protect, admin, getBestSellingProducts);
+router.get('/recommendation-options', getShoeFinderOptions);
+router.post('/recommendations', getShoeRecommendations);
 router.get('/', getProducts);
 router.get('/:id', getProductById);
 router.get('/:id/reviews', getProductReviews);

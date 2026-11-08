@@ -188,6 +188,27 @@ const legacyProduct = {
 };
 const edit = h => nodes(h.render()).find(node => node.type === 'button' && node.props.title === 'Chỉnh sửa').props.onClick();
 
+test('admins save optional finder labels without converting legacy stock', async () => {
+  const h = setup([legacyProduct]); edit(h);
+  for (const [field, value] of [['purposes', 'school'], ['styles', 'minimal']]) {
+    h.input(props => props.name === `recommendation.${field}` && props.value === value).props.onChange({ target: { checked: true } });
+  }
+  await h.submit(); const payload = h.calls.find(call => call.name === 'updateProduct').args[1];
+  assert.deepEqual(payload.recommendation, { purposes: ['school'], styles: ['minimal'] });
+  assert.equal(payload.version, 7); assert.equal(Object.hasOwn(payload, 'variants'), false); assert.equal(Object.hasOwn(payload, 'countInStock'), false);
+});
+
+test('unchanged finder labels are omitted and removing all labels explicitly clears them', async () => {
+  const product = { ...legacyProduct, recommendation: { purposes: ['office'], styles: ['elegant'] } };
+  const h = setup([product]); edit(h); h.change('name', 'Tên mới'); await h.submit();
+  assert.equal(Object.hasOwn(h.calls.find(call => call.name === 'updateProduct').args[1], 'recommendation'), false);
+  const next = setup([product]); edit(next);
+  for (const [field, value] of [['purposes', 'office'], ['styles', 'elegant']]) {
+    next.input(props => props.name === `recommendation.${field}` && props.value === value).props.onChange({ target: { checked: false } });
+  }
+  await next.submit(); assert.deepEqual(next.calls.find(call => call.name === 'updateProduct').args[1].recommendation, { purposes: [], styles: [] });
+});
+
 test('admins can preview and save a percentage sale without converting legacy inventory', async () => {
   const h = setup([legacyProduct]); edit(h);
   assert.equal(h.input(props => props.name === 'discountPercent').props.value, 0);

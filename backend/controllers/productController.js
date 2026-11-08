@@ -7,6 +7,7 @@ import { cleanText, httpError, nonNegativeInteger, normalizeSize } from '../util
 import { applyVariantSummary, hasProductVariants, parseProductVariants, variantKey } from '../utils/productVariants.js';
 import { NON_SALES_STATUSES } from '../utils/orderPricing.js';
 import { assignProductContent } from '../utils/productContent.js';
+import { normalizeRecommendationTags } from '../../shared/shoeFinder.js';
 
 const categories = ['Sneaker', 'Giày chạy bộ', 'Giày da', 'Sandal', 'Giày thể thao', 'Giày cao gót'];
 const databaseAvailable = () => mongoose.connection.readyState === 1;
@@ -23,6 +24,7 @@ const assignProductFields = (product, body, creating = false) => {
     if (creating || body[field] !== undefined) product[field] = cleanText(body[field], label, { max });
   }
   assignProductContent(product, body, creating);
+  if (body.recommendation !== undefined) product.recommendation = normalizeRecommendationTags(body.recommendation);
   if (creating || body.category !== undefined) {
     if (!categories.includes(body.category)) throw httpError(400, 'Danh mục giày không hợp lệ');
     product.category = body.category;

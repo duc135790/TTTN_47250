@@ -47,7 +47,8 @@ const setup = (render = () => useChatThread(globalThis.__chatUI.args), initial =
   globalThis.__chatUI = h;
   const storage = new Map([['user', JSON.stringify(h.auth.user)], ['token', 'token-a']]);
   globalThis.localStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, String(value)) };
-  globalThis.window = { crypto: { randomUUID } };
+  const events = new EventTarget();
+  globalThis.window = { crypto: { randomUUID }, addEventListener: events.addEventListener.bind(events), removeEventListener: events.removeEventListener.bind(events), dispatchEvent: events.dispatchEvent.bind(events) };
   globalThis.document = { visibilityState: 'visible', addEventListener() {}, removeEventListener() {} };
   globalThis.setInterval = callback => { const id = randomUUID();h.timers.set(id, callback);return id; };
   globalThis.clearInterval = id => h.timers.delete(id);
@@ -136,6 +137,36 @@ test('selecting a recommendation fills a draft and product ID without sending un
   assert.equal(calls.length, 1); assert.equal(calls[0][1], 'shoe-next'); assert.equal(nodes(h.value()).find(node => node.type === 'textarea').props.value, '');
 });
 
+test('finder handoff fills a customer draft and sends only after the customer submits', async () => {
+  const calls = [], handled = [], handoff = { id: 'finder-1', text: 'Mình cần giày đi học, size 40.', productId: '123456789012345678901234', productName: 'City Shoe' };
+  const thread = { conversation: null, messages: [], send: async (...args) => { calls.push(args); return true; }, reload() {} };
+  const h = setup(() => ChatThread({ thread, customer: true, consultationDraft: handoff, onConsultationHandled: id => handled.push(id) }));
+  let tree = h.value(); assert.equal(calls.length, 0); assert.equal(nodes(tree).find(n => n.type === 'textarea').props.value, handoff.text);
+  assert.deepEqual(handled, ['finder-1']); h.value(); assert.deepEqual(handled, ['finder-1']);
+  await nodes(tree).find(n => n.type === 'form').props.onSubmit({ preventDefault() {} });
+  assert.deepEqual(calls, [[handoff.text, handoff.productId]]); assert.equal(nodes(h.value()).find(n => n.type === 'textarea').props.value, '');
+});
+
+test('finder handoff preserves existing customer text until explicitly appended', () => {
+  let handoff = null; const handled = [], thread = { conversation: null, messages: [], reload() {} };
+  const h = setup(() => ChatThread({ thread, customer: true, consultationDraft: handoff, onConsultationHandled: id => handled.push(id) }));
+  nodes(h.value()).find(n => n.type === 'textarea').props.onChange({ target: { value: 'Mình thích màu trắng.' } });
+  handoff = { id: 'finder-2', text: 'Size 40, ngân sách 1 triệu.' }; h.value(); let tree = h.value();
+  assert.equal(nodes(tree).find(n => n.type === 'textarea').props.value, 'Mình thích màu trắng.'); assert.deepEqual(handled, []);
+  nodes(tree).find(n => n.type === 'button' && text(n) === 'Thêm vào tin đang soạn').props.onClick(); tree = h.value();
+  assert.equal(nodes(tree).find(n => n.type === 'textarea').props.value, 'Mình thích màu trắng.\n\nSize 40, ngân sách 1 triệu.'); assert.deepEqual(handled, ['finder-2']);
+});
+
+test('an oversized finder append leaves the customer draft and attachment unchanged', () => {
+  let handoff = null; const thread = { conversation: null, messages: [], reload() {} };
+  const h = setup(() => ChatThread({ thread, customer: true, consultationDraft: handoff }));
+  nodes(h.value()).find(n => n.type === 'textarea').props.onChange({ target: { value: 'a'.repeat(1950) } });
+  handoff = { id: 'finder-3', text: 'b'.repeat(100), productId: '123456789012345678901234' }; h.value();
+  nodes(h.value()).find(n => n.type === 'button' && text(n) === 'Thêm vào tin đang soạn').props.onClick();
+  assert.equal(nodes(h.value()).find(n => n.type === 'textarea').props.value.length, 1950);
+  assert(nodes(h.value()).some(n => n.props?.role === 'alert')); assert.equal(h.hooks[1].value, undefined);
+});
+
 test('new messages remain unread while reading older history until the reader reaches the latest messages', async () => {
   const h = setup();await ready(h);h.value().setReadVisible(false);
   [...h.timers.values()][0]();h.calls('mine').at(-1).resolve(conversation(2));await settle();
@@ -153,4 +184,16 @@ test('floating customer widget is absent for staff/admin and guests receive a si
   h.auth.user = null;const wrapper = h.value();assert.equal(typeof wrapper.type, 'function');
   h.hooks = [];h.cursor = 0;h.thread = { conversation: null };let tree = wrapper.type({ user: null });assert(text(tree).includes('Nhân viên tư vấn'));
   h.hooks[0].value = true;h.cursor = 0;tree = wrapper.type({ user: null });assert(text(tree).includes('Đăng nhập để nhắn tin'));
+});
+
+test('finder event opens the customer widget with an unsent draft and rejects malformed handoffs', () => {
+  const thread = { conversation: null, messages: [], reload() {} };
+  const h = setup(() => { const wrapper = ChatWidget(); return wrapper.type({ user: hUser() }); }, { thread });
+  function hUser() { return globalThis.__chatUI.auth.user; }
+  const event = value => Object.assign(new Event('shoe-store:finder-consultation'), { detail: value });
+  window.dispatchEvent(event({ text: 'Invalid', productId: 'not-a-product' })); assert(!nodes(h.value()).some(n => n.props?.role === 'dialog'));
+  window.dispatchEvent(event({ text: 'Mình cần giày đi học, size 40.', productId: '123456789012345678901234', productName: 'City Shoe' }));
+  const tree = h.value(); assert(nodes(tree).some(n => n.props?.role === 'dialog'));
+  const child = nodes(tree).find(n => n.type?.name === 'ChatThread'); assert.equal(child.props.consultationDraft.text, 'Mình cần giày đi học, size 40.');
+  assert.equal(h.calls('send').length, 0);
 });

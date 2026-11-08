@@ -32,6 +32,10 @@ Nếu tài khoản chưa có địa chỉ, checkout hiện form và lưu địa 
 
 Kiểm tra ngày **29/10/2026**: **394 backend, 221 frontend** (200 ca Node + 21 luồng), build đạt; **5 ca HTTP/MongoDB thật** đạt trong database thử riêng đã dọn, và **15 ca Chrome** ở 1440/390/320px đạt bằng API giả lập. Không ghi địa chỉ hoặc tạo đơn trong dữ liệu cửa hàng khi kiểm tra.
 
+## Tìm giày theo nhu cầu
+
+Khách mở **Tìm giày phù hợp** (`/shoe-finder`), trả lời năm câu hỏi để nhận tối đa ba mẫu còn đúng màu/size trong ngân sách sau giảm. Có so sánh, thêm biến thể vào giỏ và chuyển nhu cầu sang bản nháp chat tư vấn. Admin có thể gắn mục đích/phong cách tại **Sản phẩm → Chỉnh sửa → Gợi ý chọn giày**; dữ liệu cũ vẫn dùng được, không cần seed hay sửa `.env`. Xem [hướng dẫn, quy tắc và kiểm tra](SHOE_FINDER_GUIDE.md).
+
 ## Chạy dự án
 
 Chức năng ưu đãi mới: **Ưu đãi** (`/offers`) cho mã công khai; **Mã của tôi** (`/my-vouchers`) cho mã đã lưu và quà riêng đúng tài khoản. Quản trị tạo chương trình tại **Mã ưu đãi**, cấu hình lượt mỗi khách, mức giảm tối đa, kênh phát hành và điều kiện lần mua đầu/sau giao thành công. Lưu mã không giữ lượt. Xem [quy tắc và kiểm tra mã giảm giá](VOUCHER_REVIEW.md#chức-năng-đã-hoàn-thiện).

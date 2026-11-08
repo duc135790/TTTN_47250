@@ -2,6 +2,7 @@
 
 import mongoose from "mongoose";
 import { validProductImage, MAX_PRODUCT_IMAGES, MAX_PRODUCT_SECTIONS, MAX_PRODUCT_CONTENT_LENGTH, PRODUCT_GENDERS } from '../utils/productContent.js';
+import { FINDER_PURPOSES, FINDER_STYLES } from '../../shared/shoeFinder.js';
 
 const contentSectionSchema = new mongoose.Schema({
     title: { type: String, trim: true, maxlength: 160, default: '' },
@@ -47,6 +48,13 @@ const productSchema = mongoose.Schema(
         material: { type: String, trim: true, maxlength: 200, default: '' },
         origin: { type: String, trim: true, maxlength: 200, default: '' },
         style: { type: String, trim: true, maxlength: 200, default: '' },
+        recommendation: {
+            type: new mongoose.Schema({
+                purposes: { type: [{ type: String, enum: FINDER_PURPOSES.map(item => item.value) }], default: [], validate: values => new Set(values).size === values.length },
+                styles: { type: [{ type: String, enum: FINDER_STYLES.filter(item => item.value !== 'any').map(item => item.value) }], default: [], validate: values => new Set(values).size === values.length },
+            }, { _id: false }),
+            default: undefined,
+        },
         modelCode: { type: String, trim: true, maxlength: 200, default: '' },
         gender: { type: String, enum: PRODUCT_GENDERS, default: '' },
         contentSections: {

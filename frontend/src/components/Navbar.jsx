@@ -117,7 +117,7 @@ const Navbar = () => {
               aria-current={isCatalog && selectedCategory === category ? 'page' : undefined}
             >{category}</Link>
           ))}
-          <Link to="/products" className="store-header__browse">Khám phá bộ sưu tập <FaArrowRight aria-hidden="true" /></Link>
+          <Link to="/shoe-finder" className={`store-header__browse${location.pathname === '/shoe-finder' ? ' is-active' : ''}`} aria-current={location.pathname === '/shoe-finder' ? 'page' : undefined}>Tìm giày phù hợp <FaArrowRight aria-hidden="true" /></Link>
         </nav>
       </div>
     </header>

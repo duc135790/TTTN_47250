@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
@@ -23,6 +24,7 @@ import MyOrders from './pages/MyOrders';
 import Profile from './pages/Profile';
 import Admin from './pages/Admin';
 import Vouchers from './pages/Vouchers';
+const ShoeFinder = lazy(() => import('./pages/ShoeFinder'));
 
 function App() {
   
@@ -42,6 +44,7 @@ function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password/:token" element={<ResetPassword />} />
             <Route path="/products" element={<Products />} />
+            <Route path="/shoe-finder" element={<Suspense fallback={<div className="container mx-auto px-4 py-16 text-center" role="status">Đang mở phần chọn giày...</div>}><ShoeFinder /></Suspense>} />
             <Route path="/products/:id" element={<ProductDetail />} />
             <Route element={<ShoppingRoute />}>
             <Route path="/cart" element={<Cart />} />
