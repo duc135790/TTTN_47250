@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
 import mongoose from 'mongoose';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import productRoutes from './routes/productRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import staffRoutes from './routes/staffRoutes.js';
@@ -12,6 +14,8 @@ import authRoutes from './routes/authRoutes.js';
 import { requireDatabase } from './middleware/authMiddleware.js';
 import { serveProductImages } from './controllers/uploadController.js';
 import { DEV_WORKSPACE_HEADER, devWorkspaceId } from './utils/devWorkspace.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export const createApp = () => {
   const app = express();
@@ -46,6 +50,14 @@ export const createApp = () => {
   app.use('/api/orders', requireDatabase, orderRoutes);
   app.use('/api/vouchers', requireDatabase, voucherRoutes);
   app.use('/api/chats', requireDatabase, chatRoutes);
+
+  // Phục vụ frontend đã build (frontend/dist) khi deploy
+  const frontendDist = path.join(__dirname, '../frontend/dist');
+  app.use(express.static(frontendDist));
+  app.get(/^\/(?!api|uploads).*/, (req, res) => {
+    res.sendFile(path.join(frontendDist, 'index.html'));
+  });
+
   app.use((req, res) => res.status(404).json({ message: 'Không tìm thấy chức năng yêu cầu' }));
   app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
